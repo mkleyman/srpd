@@ -71,8 +71,9 @@ def binarize_vector(arr:np.ndarray, num_clusters):
 
 def assign_cells_init(gene_bin_mat:np.ndarray, prob_matrix_a: np.ndarray, prob_matrix_b: np.ndarray):
     inv_bin = 1.0 - gene_bin_mat
+    one_bin = np.ones(gene_bin_mat.shape)
     prob_a = np.dot(prob_matrix_a,gene_bin_mat)+np.dot(prob_matrix_b,inv_bin)
-    prob_b = np.dot(prob_matrix_b,gene_bin_mat)+np.dot(prob_matrix_a,inv_bin)
+    prob_b = np.dot(prob_matrix_b,one_bin)
     return (prob_a >  prob_b).astype(float)
 
 def assign_genes_init(cell_bin_mat:np.ndarray, prob_matrix_a: np.ndarray, prob_matrix_b: np.ndarray):
