@@ -24,5 +24,5 @@ echo -e "
     "
 	
 ## start an ipcluster instance and launch jupyter server
-cd /projects/pfenninggroup/machineLearningForComputationalBiology/SingleCell/neuron_collab/analysis
+cd projects/scrpd/analysis
 jupyter-notebook --NotebookApp.iopub_data_rate_limit=100000000000000 --no-browser --port=$ipnport --ip=$ipnip
