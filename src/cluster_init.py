@@ -40,9 +40,9 @@ def init_clusts_chip(epi_arr, thresh):
 
 
 def nmf_init(mat:np.ndarray, num_clusters=int):
-    nmf = nimfa.Psmf(mat, rank=num_clusters)
+    nmf = nimfa.Snmf(mat, rank=num_clusters)
     nmf_fit = nmf()
-    return nmf_fit.basis().todense().astype(bool).astype(float)
+    return nmf_fit.basis().astype(bool).astype(float)
 
 def init_hybrid(exp_mat,epi_mat,thresh,nclust):
     num_components = epi_mat.shape[1]-1
