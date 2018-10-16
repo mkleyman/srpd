@@ -33,7 +33,7 @@ def m_step(sample_clustering:np.ndarray,var_clustering:np.ndarray,
 
     iteration = 0
     likelihood = 0.0
-    while not(np.allclose(sample_clustering,sample_clustering_next) and np.allclose(var_clustering,var_clustering_next)):
+    while not(np.allclose(sample_clustering,sample_clustering_next) and np.allclose(var_clustering,var_clustering_next)) :
         print(iteration)
 
         if iteration>0:

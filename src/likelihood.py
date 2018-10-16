@@ -8,6 +8,12 @@ import math
 quick_pi = -1*np.log(np.sqrt(2*np.pi))
 sqrt_2 = np.sqrt(2)
 
+
+@vectorize([float64(float64)],nopython=True)
+def sgn_smooth(x):
+    return 1.0/(1+math.exp(-10.0*x + 5.0 ))
+
+
 @vectorize([float64(float64)],nopython=True)
 def sgn(x):
     if x>0.5: return 1.0
@@ -116,16 +122,16 @@ def opt_ik_numba_single(i_cells: np.ndarray, j_genes: np.ndarray, i: int, k: int
     if val == 0.0:
 
         changed_z_count = z_count[i,:]+j_genes[:,k]
-        nums_changed = asfloat(changed_z_count == 1.0)
-        #nums_changed = asfloat(np.logical_and(z_count[i,:] == 0.0, changed_z_count == 1.0))
+        #nums_changed = asfloat(changed_z_count == 1.0)
+        nums_changed = asfloat(np.logical_and(z_count[i,:] == 0.0, changed_z_count == 1.0))
         changed_z_vals=  z_arr  + nums_changed
 
 
 
     else:
         changed_z_count = z_count[i, :] - j_genes[:, k]
-        nums_changed = asfloat(changed_z_count == 0.0)
-        #nums_changed = asfloat(np.logical_and(z_count[i, :] == 1.0, changed_z_count == 0.0))
+        #nums_changed = asfloat(changed_z_count == 0.0)
+        nums_changed = asfloat(np.logical_and(z_count[i, :] == 1.0, changed_z_count == 0.0))
         changed_z_vals = z_arr - nums_changed
 
     z_changed = sgn(changed_z_count)
