@@ -6,15 +6,15 @@ from numba.types import UniTuple, Tuple,void
 
 from bimodal_mixture_model import make_bimodal_params_numba,value_to_bimodal_prob_numba
 from cluster_init import assign_cells_init,spectral_cluster_cosine, ward_cluster_cosine, spectral_cluster,boolean_spectral_cluster, nmf_init, kmeans_cluster
-from likelihood import full_log_likelihood_single,greedy_optimize_i_numba_single,greedy_optimize_j_numba_single
+from likelihood import full_log_likelihood_single,greedy_optimize_i_numba_single,greedy_optimize_j_numba_single,sgn
 import random
 import pickle
 from sklearn import  model_selection
 
-@jit(Tuple((float64[:],float64[:,:]))(float64[:,:],float64[:,:]))
+@jit(Tuple((float64[:],float64[:,:]))(float64[:,:],float64[:,:]),nopython=True)
 def get_memo_params(i_cells:np.ndarray,j_genes:np.ndarray,):
     z_count = np.dot(i_cells,j_genes.T)
-    z = z_count.astype(bool).astype(float)
+    z = sgn(z_count)
     z_arr = np.sum(z, 0)
     return z_arr,z_count
 
