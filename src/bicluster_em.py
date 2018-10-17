@@ -32,7 +32,7 @@ def m_step(sample_clustering:np.ndarray,var_clustering:np.ndarray,
            log_prob_a: np.ndarray, log_prob_b:np.ndarray, epi_data:np.ndarray, sigma_y:float,
            y_scale:float):
     iteration = 0
-    old_likehood = -1*sys.float_info.max_negative
+    old_likehood = -1*sys.float_info.max
     likelihood = old_likehood+100
     while not(math.isclose(old_likehood,likelihood)) :
         print(iteration)
