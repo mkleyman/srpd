@@ -1,5 +1,8 @@
 import numpy as np
-from typing import Tuple,List
+import sys,math
+
+from numba import float64,float32,jit,boolean,vectorize,int64
+from numba.types import UniTuple, Tuple,void
 
 from bimodal_mixture_model import make_bimodal_params_numba,value_to_bimodal_prob_numba
 from cluster_init import assign_cells_init,spectral_cluster_cosine, ward_cluster_cosine, spectral_cluster,boolean_spectral_cluster, nmf_init, kmeans_cluster
@@ -8,7 +11,7 @@ import random
 import pickle
 from sklearn import  model_selection
 
-
+@jit(Tuple((float64[:],float64[:,:]))(float64[:,:],float64[:,:]))
 def get_memo_params(i_cells:np.ndarray,j_genes:np.ndarray,):
     z_count = np.dot(i_cells,j_genes.T)
     z = z_count.astype(bool).astype(float)
@@ -20,7 +23,7 @@ def estimate_epi_data(i_cells:np.ndarray,j_genes:np.ndarray):
     z_total = np.sum(z , 0) * (1.0 / (i_cells.shape[0] ))
     return z_total
 
-def e_step(exp_data:np.ndarray, epi_data:np.ndarray)->Tuple[np.ndarray,np.ndarray,np.ndarray]:
+def e_step(exp_data:np.ndarray, epi_data:np.ndarray):
     bimod_params = make_bimodal_params_numba(exp_data,epi_data)
     log_prob_a, log_prob_b = value_to_bimodal_prob_numba(exp_data, bimod_params)
     return log_prob_a,log_prob_b,bimod_params
@@ -28,55 +31,27 @@ def e_step(exp_data:np.ndarray, epi_data:np.ndarray)->Tuple[np.ndarray,np.ndarra
 def m_step(sample_clustering:np.ndarray,var_clustering:np.ndarray,
            log_prob_a: np.ndarray, log_prob_b:np.ndarray, epi_data:np.ndarray, sigma_y:float,
            y_scale:float):
-    var_clustering_next = np.zeros(var_clustering.shape)
-    sample_clustering_next = np.zeros(sample_clustering.shape)
-
     iteration = 0
-    likelihood = 0.0
-    while not(np.allclose(sample_clustering,sample_clustering_next) and np.allclose(var_clustering,var_clustering_next)) :
+    old_likehood = -1*sys.float_info.max_negative
+    likelihood = old_likehood+100
+    while not(math.isclose(old_likehood,likelihood)) :
         print(iteration)
-
-        if iteration>0:
-            sample_clustering = np.copy(sample_clustering_next)
-            var_clustering = np.copy(var_clustering_next)
+        old_likehood = likelihood
         iteration+=1
-        var_clustering_next = np.copy(var_clustering)
-        sample_clustering_next = np.copy(sample_clustering)
-
-        z_arr, z_count,  = get_memo_params(sample_clustering_next, var_clustering_next)
-
+        z_arr, z_count,  = get_memo_params(sample_clustering, var_clustering)
         print("optmizing j")
-        #greedy_optimize_j(sample_clustering_next,var_clustering_next,eps_next,log_prob_a,log_prob_b,epi_data,sigma_y,sigma_eps,y_scale,
-                          #z_arr, z_count, denom)
-        greedy_optimize_j_numba_single(sample_clustering_next, var_clustering_next,  log_prob_a, log_prob_b, epi_data,
+        greedy_optimize_j_numba_single(sample_clustering, var_clustering,  log_prob_a, log_prob_b, epi_data,
                           sigma_y, y_scale,z_arr, z_count)
-
-        '''
-
-
-        z_arr, z_count, denom = get_memo_params(sample_clustering_next, var_clustering_next, eps_min)'''
-
         print("optimizing i")
-        #greedy_optimize_i(sample_clustering_next, var_clustering_next, eps_next, log_prob_a, log_prob_b, epi_data,
-                          #sigma_y, sigma_eps, y_scale,z_arr, z_count, denom)
-        greedy_optimize_i_numba_single(sample_clustering_next, var_clustering_next, log_prob_a, log_prob_b, epi_data,
+        greedy_optimize_i_numba_single(sample_clustering, var_clustering, log_prob_a, log_prob_b, epi_data,
                                 sigma_y, y_scale, z_arr, z_count)
-
-
-
-
-        likelihood = full_log_likelihood_single(sample_clustering_next,var_clustering_next,log_prob_a,log_prob_b,epi_data,sigma_y,y_scale)
+        likelihood = full_log_likelihood_single(sample_clustering,var_clustering,log_prob_a,log_prob_b,epi_data,sigma_y,y_scale)
         print(likelihood)
     return sample_clustering,var_clustering, likelihood
 
 
-
-
-
-
-
 def bicluster_single(exp_data:np.ndarray, epi_data:np.ndarray, num_clusters:int,
-                  sigma_y:float,y_scale:float)->Tuple[np.ndarray,np.ndarray,np.ndarray,float]:
+                  sigma_y:float,y_scale:float):
     '''
 
     :param exp_data: N x G matrix of Single Cell Expression
@@ -105,8 +80,8 @@ def bicluster_single(exp_data:np.ndarray, epi_data:np.ndarray, num_clusters:int,
     iteration = 0
     while not (np.allclose(cell_assignments, cell_assignments_next) and np.allclose(gene_assignments, gene_assignments_next) or iteration>=20):
         if iteration>0:
-            cell_assignments = cell_assignments_next
-            gene_assignments = gene_assignments_next
+            cell_assignments = np.copy(cell_assignments_next)
+            gene_assignments = np.copy(gene_assignments_next)
         iteration+=1
         print(" e-step")
         epi_estimate = estimate_epi_data(cell_assignments, gene_assignments)
@@ -119,7 +94,7 @@ def bicluster_single(exp_data:np.ndarray, epi_data:np.ndarray, num_clusters:int,
 
 
 def bicluster_preprocessed(exp_data:np.ndarray, epi_data:np.ndarray, num_clusters:int,
-                  sigma_y:float,y_scale:float,log_prob_a, log_prob_b, bimod_params)->Tuple[np.ndarray,np.ndarray,np.ndarray,float]:
+                  sigma_y:float,y_scale:float,log_prob_a, log_prob_b, bimod_params):
     '''
 
     :param exp_data: N x G matrix of Single Cell Expression
